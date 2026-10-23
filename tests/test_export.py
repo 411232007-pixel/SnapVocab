@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 from openpyxl import load_workbook
 
-from snapvocab.export import ExportError, build_exports, export_filename
+from snapvocab.export import ExportError, build_exports, export_filename, safe_filename_part
 from snapvocab.export.xlsx import SHEET_LOG, SHEET_VOCAB, _log_titles, _vocab_titles, verify_workbook
 
 from .conftest import make_card
@@ -87,8 +87,32 @@ def test_impossible_size_limit_gives_clear_error(db):
 def test_filename_is_safe_and_unique():
     a, b = export_filename("1234; rm -rf /"), export_filename("1234; rm -rf /")
     assert a != b
-    assert a.startswith("snapvocab_1234_") and a.endswith(".xlsx")
+    assert a.startswith("snapvocab_1234rm-rf_") and a.endswith(".xlsx")
     assert "/" not in a and " " not in a and ";" not in a
+
+
+HOSTILE = [
+    "../../etc/passwd", r"..\..\Windows\system32", r"C:\boot.ini", "a:b", "CON", "nul.txt",
+    "x/y\\z", "..", "...", "名稱;rm", "９９９", "a\x00b", "a\nb", "%2e%2e%2f", "x" * 500, "",
+]
+FORBIDDEN = set('/\\:*?"<>|.\x00\n\r ;%')
+
+
+@pytest.mark.parametrize("text", HOSTILE)
+def test_safe_filename_part_strips_path_characters(text):
+    out = safe_filename_part(text)
+    assert out and len(out) <= 40
+    assert out.isascii()
+    assert not set(out) & FORBIDDEN
+    name = export_filename(text)
+    assert "/" not in name and "\\" not in name and ":" not in name and ".." not in name
+    assert name.endswith(".xlsx") and name.count(".") == 1
+
+
+def test_safe_filename_part_fallback():
+    assert safe_filename_part("") == "unknown"
+    assert safe_filename_part("../..") == "unknown"
+    assert safe_filename_part("123456789012345678") == "123456789012345678"
 
 
 def test_headers_and_column_counts_match_spec(db):

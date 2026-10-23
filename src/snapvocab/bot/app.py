@@ -17,7 +17,7 @@ from ..services.images import ImageError, prepare_image
 from ..services.ratelimit import RateLimiter
 from ..storage import Database
 from ..vision import ClaudeVision, VisionError
-from ..vision.claude import clean_name
+from ..models import OBJECT_NAME_RULE, ValidationError, validate_object_name
 from .formatting import FIRST_USE_TIP, HELP_MARKER, HELP_TEXT, format_card, format_recent, format_stats
 
 log = logging.getLogger(__name__)
@@ -37,10 +37,14 @@ class ManualNameModal(discord.ui.Modal, title="輸入物品名稱"):
         self.choice_view = view
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        name = clean_name(str(self.name.value))
         view = self.choice_view
-        if not name or view._done:
-            await interaction.response.send_message("請輸入物品名稱。", ephemeral=True)
+        try:
+            name = validate_object_name(str(self.name.value))
+        except ValidationError:
+            await interaction.response.send_message(OBJECT_NAME_RULE + "請再按一次「其他」重新輸入。", ephemeral=True)
+            return
+        if view._done:
+            await interaction.response.send_message("這個選擇已經處理過了。", ephemeral=True)
             return
         view._done = True
         view.stop()

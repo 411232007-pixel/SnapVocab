@@ -67,6 +67,19 @@ def validate_card(data: object) -> Card:
     return Card(**values)
 
 
+_OBJECT_NAME = re.compile(r"^[㐀-䶿一-鿿぀-ヿA-Za-z0-9 \-・·]+$")
+OBJECT_NAME_MAX = 30
+OBJECT_NAME_RULE = "物品名稱只能包含中文、日文、英文字母、數字與空格，長度 30 字以內。"
+
+
+def validate_object_name(raw: str) -> str:
+    """Allowlist for any object name that will reach the model (typed by a user or read from a photo)."""
+    name = " ".join(unicodedata.normalize("NFKC", raw).split())
+    if not name or len(name) > OBJECT_NAME_MAX or not _OBJECT_NAME.match(name):
+        raise ValidationError(OBJECT_NAME_RULE)
+    return name
+
+
 def en_key(word: str) -> str:
     return " ".join(word.split()).lower()
 

@@ -1,5 +1,6 @@
 """Excel export built from one user's records (no model involved)."""
 
+import re
 import secrets
 from datetime import datetime
 from io import BytesIO
@@ -36,9 +37,16 @@ class ExportError(Exception):
     """User-presentable export failure."""
 
 
+def safe_filename_part(text: str, max_len: int = 40) -> str:
+    """Keep only ASCII letters, digits, '-' and '_' so no path separator, '..', drive colon or
+    reserved character can survive. Anything not text-safe (or empty) falls back to 'unknown'."""
+    cleaned = re.sub(r"[^A-Za-z0-9_-]", "", text)[:max_len]
+    return cleaned or "unknown"
+
+
 def export_filename(user_id: str, part: int = 0, parts: int = 1) -> str:
     stamp = to_taipei(datetime.now().astimezone().isoformat()).strftime("%Y%m%d-%H%M%S")
-    safe_id = "".join(ch for ch in user_id if ch.isdigit())
+    safe_id = safe_filename_part(user_id)
     suffix = f"_part{part + 1}of{parts}" if parts > 1 else ""
     return f"snapvocab_{safe_id}_{stamp}_{secrets.token_hex(3)}{suffix}.xlsx"
 
