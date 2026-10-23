@@ -1,0 +1,29 @@
+[project]
+name = "snapvocab"
+version = "0.1.0"
+description = "Discord bot that turns photos of everyday objects into zh/en/ja vocabulary cards"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "discord-py>=2.7.1",
+    "openpyxl>=3.1.5",
+    "pillow>=13.0.0",
+    "python-dotenv>=1.2.4",
+    "tzdata>=2026.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/snapvocab"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
